@@ -1,13 +1,47 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import IntroScreen from './components/IntroScreen'
 import ScenePlayer from './components/ScenePlayer'
 import CardReveal from './components/CardReveal'
 import ShareModal from './components/ShareModal'
-import { SCENES } from './data/scenes'
+import { generateScenes } from './utils/generateScenes'
 import { deriveCard } from './utils/deriveCard'
 import { decodeCard } from './utils/encode'
 
 const INITIAL_SCORES = { ownership: 0, expression: 0, adaptability: 0, depth: 0 }
+
+function LoadingScreen() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'radial-gradient(ellipse at 50% 30%, #0d0c0a 0%, #080706 50%, #050505 100%)',
+      }}
+    >
+      <p
+        style={{
+          fontFamily: 'Georgia, "Times New Roman", serif',
+          fontSize: '17.5px',
+          color: '#c8bdb0',
+          letterSpacing: '0.02em',
+          animation: 'loading-pulse 2.4s ease-in-out infinite',
+        }}
+      >
+        Preparing your story...
+      </p>
+      <style>{`
+        @keyframes loading-pulse {
+          0%   { opacity: 0; }
+          30%  { opacity: 1; }
+          70%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 export default function App() {
   const [screen, setScreen] = useState('intro')
@@ -16,6 +50,8 @@ export default function App() {
   const [cardData, setCardData] = useState(null)
   const [showShare, setShowShare] = useState(false)
   const [fromUrl, setFromUrl] = useState(false)
+  const [scenes, setScenes] = useState([])
+  const prefetchRef = useRef(null)
 
   useEffect(() => {
     const hash = window.location.hash
@@ -29,15 +65,22 @@ export default function App() {
         return
       }
     }
+    // Prefetch scenes immediately so they're ready when the user clicks Begin
+    prefetchRef.current = generateScenes()
   }, [])
 
-  const handleBegin = useCallback(() => {
-    setScreen('scene')
+  const handleBegin = useCallback(async () => {
+    setScreen('loading')
     setSceneIndex(0)
     setScores({ ...INITIAL_SCORES })
     setCardData(null)
     setFromUrl(false)
     window.history.replaceState(null, '', window.location.pathname)
+
+    // Reuse the prefetched promise — if already resolved this is instant
+    const loaded = await (prefetchRef.current ?? generateScenes())
+    setScenes(loaded)
+    setScreen('scene')
   }, [])
 
   const handleChoice = useCallback((choiceScores) => {
@@ -51,16 +94,19 @@ export default function App() {
 
     setSceneIndex((prev) => {
       const nextIndex = prev + 1
-      if (nextIndex >= SCENES.length) {
-        setTimeout(() => {
-          setScores((finalScores) => {
-            const card = deriveCard(finalScores)
-            setCardData(card)
-            setScreen('reveal')
-            return finalScores
-          })
-        }, 50)
-      }
+      setScenes((currentScenes) => {
+        if (nextIndex >= currentScenes.length) {
+          setTimeout(() => {
+            setScores((finalScores) => {
+              const card = deriveCard(finalScores)
+              setCardData(card)
+              setScreen('reveal')
+              return finalScores
+            })
+          }, 50)
+        }
+        return currentScenes
+      })
       return nextIndex
     })
   }, [])
@@ -75,7 +121,10 @@ export default function App() {
     setScores({ ...INITIAL_SCORES })
     setCardData(null)
     setFromUrl(false)
+    setScenes([])
     window.history.replaceState(null, '', window.location.pathname)
+    // Prefetch fresh scenes for the next round
+    prefetchRef.current = generateScenes()
   }, [])
 
   return (
@@ -84,9 +133,14 @@ export default function App() {
         <IntroScreen onBegin={handleBegin} />
       )}
 
-      {screen === 'scene' && sceneIndex < SCENES.length && (
+      {screen === 'loading' && (
+        <LoadingScreen />
+      )}
+
+      {screen === 'scene' && scenes.length > 0 && sceneIndex < scenes.length && (
         <ScenePlayer
-          scene={SCENES[sceneIndex]}
+          scene={scenes[sceneIndex]}
+          scenes={scenes}
           onChoice={handleChoice}
         />
       )}

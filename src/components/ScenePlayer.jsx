@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { SCENES } from '../data/scenes'
 
 const SCENE_VIBES = {
   1: { icon: '☕', accent: '#d4a054' },
@@ -50,15 +49,15 @@ function useTypewriter(text, speed = 22, startDelay = 400) {
   return { displayed, done, skip }
 }
 
-export default function ScenePlayer({ scene, onChoice }) {
+export default function ScenePlayer({ scene, scenes, onChoice }) {
   const [phase, setPhase] = useState('entering')
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [leaving, setLeaving] = useState(false)
   const [flashOpacity, setFlashOpacity] = useState(0.6)
   const containerRef = useRef(null)
 
-  const sceneNumber = SCENES.findIndex((s) => s.id === scene.id) + 1
-  const totalScenes = SCENES.length
+  const sceneNumber = scenes.findIndex((s) => s.id === scene.id) + 1
+  const totalScenes = scenes.length
   const vibe = SCENE_VIBES[scene.id] || SCENE_VIBES[1]
 
   const { displayed, done: narrativeDone, skip: skipTypewriter } = useTypewriter(

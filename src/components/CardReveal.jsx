@@ -73,8 +73,8 @@ export default function CardReveal({ cardData, onShare, onPlayAgain, skipIntro =
           top: '45%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${type.glow} 0%, ${type.color}08 30%, transparent 65%)`,
-          opacity: step >= 2 ? 0.5 : 0,
+          background: `radial-gradient(circle, ${type.glow} 0%, ${type.color}10 35%, transparent 65%)`,
+          opacity: step >= 2 ? 0.6 : 0,
           transition: 'opacity 2s ease',
         }}
       />
@@ -135,7 +135,7 @@ export default function CardReveal({ cardData, onShare, onPlayAgain, skipIntro =
           transition: 'opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1), transform 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        <HoloCard data={cardData} size="large" />
+        <HoloCard data={cardData} size="large" flippable />
       </div>
 
       {/* Step 3: Archetype details + buttons */}
